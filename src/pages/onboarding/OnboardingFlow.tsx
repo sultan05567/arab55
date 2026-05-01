@@ -4,12 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Check, ChevronLeft, ChevronRight, Briefcase, Building2, Store, WashingMachine, Coffee, ShoppingBag, Users, Layout, Package, Monitor, FileText, ClipboardList } from 'lucide-react';
 import { BUSINESS_SECTORS, ALL_MODULES } from '@/constants/sectors';
-import { SectorKey, ModuleKey } from '@/types';
+import { SectorKey } from '@/types';
 import { cn } from '@/lib/utils';
 import { doc, updateDoc, writeBatch, serverTimestamp, collection } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { useFirebase } from '@/components/FirebaseProvider';
+import { useModules } from '@/components/ModuleProvider';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { DynamicIcon } from '@/components/DynamicIcon';
 
 const SECTOR_ICONS: Record<SectorKey, any> = {
   services: Briefcase,
@@ -25,19 +28,24 @@ const SECTOR_ICONS: Record<SectorKey, any> = {
 export default function OnboardingFlow() {
   const [step, setStep] = useState(1);
   const [selectedSector, setSelectedSector] = useState<SectorKey | null>(null);
-  const [selectedModules, setSelectedModules] = useState<ModuleKey[]>([]);
+  const [selectedModules, setSelectedModules] = useState<string[]>([]);
   const { profile } = useFirebase();
+  const { modules } = useModules();
   const navigate = useNavigate();
 
   const handleSectorSelect = (sector: SectorKey) => {
     setSelectedSector(sector);
     const sectorDef = BUSINESS_SECTORS.find(s => s.key === sector);
     if (sectorDef) {
-      setSelectedModules(sectorDef.defaultModules);
+      // Find dynamic modules that match the default list for this sector
+      const defaults = modules
+        .filter(m => sectorDef.defaultModules.includes(m.key as any))
+        .map(m => m.key);
+      setSelectedModules(defaults);
     }
   };
 
-  const toggleModule = (moduleKey: ModuleKey) => {
+  const toggleModule = (moduleKey: string) => {
     setSelectedModules(prev => 
       prev.includes(moduleKey) 
         ? prev.filter(m => m !== moduleKey)
@@ -49,30 +57,29 @@ export default function OnboardingFlow() {
     if (!profile?.companyId || !selectedSector) return;
 
     try {
-      const batch = writeBatch(db);
-      
-      // Update company
+      // Update company in Firebase
       const companyRef = doc(db, 'companies', profile.companyId);
-      batch.update(companyRef, {
+      await updateDoc(companyRef, {
         sectorKey: selectedSector,
         onboardingCompleted: true
       });
 
-      // Set modules
-      selectedModules.forEach(moduleKey => {
-        const moduleRef = doc(collection(db, 'companies', profile.companyId, 'modules'));
-        batch.set(moduleRef, {
-          moduleKey,
-          isEnabled: true,
-          enabledBy: profile.uid,
-          createdAt: serverTimestamp()
-        });
-      });
+      // Save enabled modules in Supabase
+      const moduleInserts = selectedModules.map(key => ({
+        company_id: profile.companyId,
+        module_key: key,
+        is_enabled: true
+      }));
 
-      await batch.commit();
+      const { error } = await supabase
+        .from('company_modules')
+        .insert(moduleInserts);
+
+      if (error) throw error;
+
       toast.success('تمت تهيئة نظامك بنجاح!');
       navigate('/dashboard');
-      window.location.reload(); // Refresh to reload provider data
+      window.location.reload(); 
     } catch (error) {
       console.error('Error in onboarding:', error);
       toast.error('حدث خطأ أثناء حفظ الإعدادات');
@@ -152,7 +159,7 @@ export default function OnboardingFlow() {
             </div>
             
             <div className="grid md:grid-cols-3 gap-4 max-h-[50vh] overflow-y-auto p-4 no-scrollbar">
-              {ALL_MODULES.map((module) => (
+              {modules.map((module) => (
                 <button
                   key={module.key}
                   onClick={() => toggleModule(module.key)}
@@ -167,11 +174,15 @@ export default function OnboardingFlow() {
                     "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
                     selectedModules.includes(module.key) ? "bg-primary text-white" : "bg-slate-100 text-slate-400"
                   )}>
-                    {selectedModules.includes(module.key) ? <Check className="w-5 h-5" /> : <Layout className="w-5 h-5" />}
+                    {selectedModules.includes(module.key) ? (
+                      <Check className="w-5 h-5" />
+                    ) : (
+                      <DynamicIcon name={module.icon} className="w-5 h-5" />
+                    )}
                   </div>
                   <div>
-                    <p className="font-black text-sm text-slate-900">{module.name}</p>
-                    <p className="text-[10px] text-slate-400 font-bold">{module.description}</p>
+                    <p className="font-black text-sm text-slate-900">{module.name_ar}</p>
+                    <p className="text-[10px] text-slate-400 font-bold">{module.name_en}</p>
                   </div>
                 </button>
               ))}
@@ -202,12 +213,15 @@ export default function OnboardingFlow() {
               </CardHeader>
               <CardContent className="p-12">
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  {selectedModules.slice(0, 8).map(m => (
-                    <div key={m} className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-xl border border-slate-100">
-                      <Check className="w-4 h-4 text-emerald-500" />
-                      <span className="text-sm font-bold text-slate-700">{ALL_MODULES.find(mod => mod.key === m)?.name}</span>
-                    </div>
-                  ))}
+                  {selectedModules.slice(0, 8).map(mKey => {
+                    const mod = modules.find(m => m.key === mKey);
+                    return (
+                      <div key={mKey} className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <Check className="w-4 h-4 text-emerald-500" />
+                        <span className="text-sm font-bold text-slate-700">{mod?.name_ar || mKey}</span>
+                      </div>
+                    );
+                  })}
                   {selectedModules.length > 8 && (
                     <div className="flex items-center justify-center p-3 text-slate-400 font-black text-sm">
                       +{selectedModules.length - 8} مميزات أخرى

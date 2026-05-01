@@ -2,16 +2,16 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db } from '@/services/firebase';
 import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
-import { UserProfile, ModuleKey } from '@/types';
+import { UserProfile } from '@/types';
 
 interface FirebaseContextType {
   user: User | null;
   profile: UserProfile | null;
-  enabledModules: ModuleKey[];
+  enabledModules: string[];
   loading: boolean;
   isAuthReady: boolean;
   hasPermission: (permission: string) => boolean;
-  isModuleEnabled: (module: ModuleKey) => boolean;
+  isModuleEnabled: (module: string) => boolean;
 }
 
 const FirebaseContext = createContext<FirebaseContextType>({
@@ -29,7 +29,7 @@ export const useFirebase = () => useContext(FirebaseContext);
 export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [enabledModules, setEnabledModules] = useState<ModuleKey[]>([]);
+  const [enabledModules, setEnabledModules] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
@@ -50,7 +50,7 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
               const modulesSnapshot = await getDocs(collection(db, 'companies', userData.companyId, 'modules'));
               const modules = modulesSnapshot.docs
                 .filter(doc => doc.data().isEnabled)
-                .map(doc => doc.data().moduleKey as ModuleKey);
+                .map(doc => doc.data().moduleKey as string);
               setEnabledModules(modules);
             }
           }
@@ -75,7 +75,7 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
     return profile.permissions?.includes(permission) || false;
   };
 
-  const isModuleEnabled = (module: ModuleKey): boolean => {
+  const isModuleEnabled = (module: string): boolean => {
     return enabledModules.includes(module);
   };
 

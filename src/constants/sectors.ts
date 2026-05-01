@@ -1,10 +1,10 @@
-import { SectorKey, ModuleKey } from '@/types';
+import { SectorKey } from '@/types';
 
 export interface SectorDefinition {
   key: SectorKey;
   name: string;
   description: string;
-  defaultModules: ModuleKey[];
+  defaultModules: string[];
 }
 
 export const BUSINESS_SECTORS: SectorDefinition[] = [
@@ -80,7 +80,7 @@ export const BUSINESS_SECTORS: SectorDefinition[] = [
   }
 ];
 
-export const ALL_MODULES: { key: ModuleKey; name: string; description: string }[] = [
+export const ALL_MODULES: { key: string; name: string; description: string }[] = [
   { key: 'dashboard', name: 'لوحة التحكم', description: 'نظرة عامة على أداء الشركة' },
   { key: 'customers', name: 'العملاء', description: 'إدارة بيانات العملاء وعلاقاتهم' },
   { key: 'suppliers', name: 'الموردين', description: 'إدارة الموردين والمشتريات' },

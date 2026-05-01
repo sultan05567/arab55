@@ -1,129 +1,31 @@
 import { 
-  LayoutDashboard, 
-  ShoppingCart, 
-  Users, 
-  Package, 
-  FileText, 
-  BarChart3, 
-  Settings, 
   LogOut,
-  Wallet,
-  Briefcase,
-  Users2,
-  Receipt,
-  Monitor,
   ChevronLeft,
   ChevronRight,
+  Settings,
+  LayoutDashboard
 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useFirebase } from '../FirebaseProvider';
-import { ModuleKey } from '@/types';
-
-interface MenuItem {
-  icon: any;
-  label: string;
-  path: string;
-  module?: ModuleKey;
-  permission?: string;
-  subItems?: { label: string; path: string; permission?: string }[];
-}
-
-const menuItems: MenuItem[] = [
-  { icon: LayoutDashboard, label: 'لوحة التحكم', path: '/dashboard', module: 'dashboard', permission: 'dashboard.view' },
-  { icon: Monitor, label: 'الكاشير (POS)', path: '/pos', module: 'pos', permission: 'pos.view' },
-  { 
-    icon: ShoppingCart, 
-    label: 'المبيعات', 
-    path: '/sales',
-    module: 'invoices',
-    permission: 'sales.view',
-    subItems: [
-      { label: 'الفواتير', path: '/sales' },
-      { label: 'عروض الأسعار', path: '/sales/quotations' },
-      { label: 'المرتجعات', path: '/sales/returns' },
-    ]
-  },
-  { 
-    icon: Receipt, 
-    label: 'المشتريات', 
-    path: '/purchases',
-    module: 'suppliers',
-    permission: 'purchases.view',
-    subItems: [
-      { label: 'فواتير المشتريات', path: '/purchases' },
-      { label: 'أوامر الشراء', path: '/purchases/orders' },
-      { label: 'الموردين', path: '/crm' },
-    ]
-  },
-  { icon: Users, label: 'العملاء والموردين', path: '/crm', module: 'customers', permission: 'customers.view' },
-  { 
-    icon: Package, 
-    label: 'المخزون', 
-    path: '/inventory',
-    module: 'inventory',
-    permission: 'inventory.view',
-    subItems: [
-      { label: 'المنتجات', path: '/inventory' },
-      { label: 'تسويات المخزون', path: '/inventory/adjustments' },
-      { label: 'المستودعات', path: '/inventory/warehouses' },
-      { label: 'حركات المخزون', path: '/inventory/movements' },
-    ]
-  },
-  { 
-    icon: Wallet, 
-    label: 'المالية', 
-    path: '/finance',
-    module: 'receipts',
-    permission: 'finance.view',
-    subItems: [
-      { label: 'البنوك والخزينة', path: '/finance' },
-      { label: 'سندات القبض', path: '/finance/receipts' },
-      { label: 'سندات الصرف', path: '/finance/payments' },
-    ]
-  },
-  { 
-    icon: FileText, 
-    label: 'المحاسبة', 
-    path: '/accounting',
-    module: 'accounting',
-    permission: 'accounting.view',
-    subItems: [
-      { label: 'دليل الحسابات', path: '/accounting' },
-      { label: 'القيود اليومية', path: '/accounting/journal' },
-      { label: 'ميزان المراجعة', path: '/accounting/trial-balance' },
-    ]
-  },
-  { icon: Briefcase, label: 'المشاريع', path: '/projects', module: 'projects', permission: 'projects.view' },
-  { 
-    icon: Users2, 
-    label: 'الموارد البشرية', 
-    path: '/hr',
-    module: 'hr',
-    permission: 'hr.view',
-    subItems: [
-      { label: 'الموظفين', path: '/hr' },
-      { label: 'الرواتب', path: '/hr/payroll' },
-      { label: 'الحضور والانصراف', path: '/hr/attendance' },
-    ]
-  },
-  { icon: BarChart3, label: 'التقارير', path: '/reports', module: 'reports', permission: 'reports.view' },
-  { icon: Settings, label: 'الإعدادات', path: '/settings', permission: 'settings.view' },
-];
+import { useModules } from '../ModuleProvider';
+import { DynamicIcon } from '../DynamicIcon';
 
 export function Sidebar() {
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const { isModuleEnabled, hasPermission } = useFirebase();
+  const { hasPermission } = useFirebase();
+  const { modules, enabledModuleKeys, userPermissions } = useModules();
 
-  const filteredMenu = menuItems.filter(item => {
-    // If it's a module-linked item, check if module is enabled
-    if (item.module && !isModuleEnabled(item.module)) return false;
+  const filteredModules = modules.filter(module => {
+    // Check if company has enabled this module
+    if (!enabledModuleKeys.includes(module.key)) return false;
     
-    // Check if user has permission
-    if (item.permission && !hasPermission(item.permission)) return false;
+    // Check if user has permission to view this module (module.view)
+    const permissionKey = `${module.key}.view`;
+    if (!userPermissions.includes(permissionKey)) return false;
 
     return true;
   });
@@ -133,7 +35,6 @@ export function Sidebar() {
       "bg-card border-l border-border flex flex-col h-full transition-all duration-500 ease-in-out relative z-40 group/sidebar",
       isCollapsed ? "w-20" : "w-64"
     )}>
-      {/* ... toggle button ... */}
       <Button
         variant="ghost"
         size="icon"
@@ -154,14 +55,32 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto no-scrollbar">
-        {filteredMenu.map((item) => {
-          const isActive = location.pathname.startsWith(item.path);
-          const hasSubItems = 'subItems' in item;
+        {/* Dashboard - Always show if active */}
+        <Link
+          to="/dashboard"
+          className={cn(
+            "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative",
+            location.pathname === '/dashboard'
+              ? "bg-primary/10 text-primary"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            isCollapsed && "justify-center"
+          )}
+        >
+          <LayoutDashboard className={cn(
+            "w-5 h-5 transition-colors shrink-0",
+            location.pathname === '/dashboard' ? "text-primary" : "group-hover:text-primary"
+          )} />
+          {!isCollapsed && <span className="font-semibold text-sm animate-in fade-in duration-500">لوحة التحكم</span>}
+        </Link>
 
+        {/* Dynamic Modules */}
+        {filteredModules.map((module) => {
+          const isActive = location.pathname.startsWith(module.route);
+          
           return (
-            <div key={item.path} className="space-y-1">
+            <div key={module.key} className="space-y-1">
               <Link
-                to={item.path}
+                to={module.route}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative",
                   isActive
@@ -170,37 +89,45 @@ export function Sidebar() {
                   isCollapsed && "justify-center"
                 )}
               >
-                <item.icon className={cn(
-                  "w-5 h-5 transition-colors shrink-0",
-                  isActive ? "text-primary" : "group-hover:text-primary"
-                )} />
-                {!isCollapsed && <span className="font-semibold text-sm animate-in fade-in duration-500">{item.label}</span>}
+                <DynamicIcon 
+                  name={module.icon} 
+                  className={cn(
+                    "w-5 h-5 transition-colors shrink-0",
+                    isActive ? "text-primary" : "group-hover:text-primary"
+                  )} 
+                />
+                {!isCollapsed && (
+                  <span className="font-semibold text-sm animate-in fade-in duration-500">
+                    {module.name_ar}
+                  </span>
+                )}
                 {isActive && !isCollapsed && (
                   <div className="absolute right-0 top-2 bottom-2 w-1 bg-primary rounded-l-full" />
                 )}
               </Link>
-              
-              {isActive && hasSubItems && !isCollapsed && (
-                <div className="mr-8 space-y-1 mt-1 border-r border-muted pr-4 animate-in slide-in-from-top-1 duration-300">
-                  {item.subItems?.filter(sub => !sub.permission || hasPermission(sub.permission)).map((sub) => (
-                    <Link
-                      key={sub.path}
-                      to={sub.path}
-                      className={cn(
-                        "block py-1.5 text-[13px] font-medium transition-colors",
-                        location.pathname === sub.path
-                          ? "text-primary"
-                          : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      {sub.label}
-                    </Link>
-                  ))}
-                </div>
-              )}
             </div>
           );
         })}
+
+        {/* Settings - Always show if permitted */}
+        {hasPermission('settings.view') && (
+          <Link
+            to="/settings"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative",
+              location.pathname.startsWith('/settings')
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              isCollapsed && "justify-center"
+            )}
+          >
+            <Settings className={cn(
+              "w-5 h-5 transition-colors shrink-0",
+              location.pathname.startsWith('/settings') ? "text-primary" : "group-hover:text-primary"
+            )} />
+            {!isCollapsed && <span className="font-semibold text-sm animate-in fade-in duration-500">الإعدادات</span>}
+          </Link>
+        )}
       </nav>
 
       {!isCollapsed && (

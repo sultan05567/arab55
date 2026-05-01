@@ -21,20 +21,28 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function getUserData() {
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function getProfile() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
     function isMemberOf(companyId) {
-      return isSignedIn() && getUserData().companyId == companyId;
+      return isSignedIn() && getProfile().companyId == companyId;
     }
 
     function hasPermission(perm) {
-      let data = getUserData();
+      let profile = getProfile();
       return isSignedIn() && (
-        data.isOwner == true || 
-        (data.permissions is list && data.permissions.toSet().hasAny([perm]))
+        profile.isOwner == true || 
+        (profile.permissions is list && profile.permissions.toSet().hasAny([perm]))
       );
+    }
+    
+    function isCompanyOwner(companyId) {
+      return isSignedIn() && get(/databases/$(database)/documents/companies/$(companyId)).data.ownerUid == request.auth.uid;
     }
 
     // ===============================================================
@@ -43,13 +51,14 @@ service cloud.firestore {
 
     // Users
     match /users/{userId} {
-      allow read: if isOwner(userId) || (isSignedIn() && isMemberOf(resource.data.companyId) && hasPermission('users.manage'));
+      allow get: if isValidId(userId) && (isOwner(userId) || (isSignedIn() && isMemberOf(resource.data.companyId) && hasPermission('users.manage')));
+      allow list: if isSignedIn() && (isOwner(userId) || (isMemberOf(resource.data.companyId) && hasPermission('users.manage')));
       
-      allow create: if isSignedIn() && isOwner(userId) && 
+      allow create: if isValidId(userId) && isSignedIn() && isOwner(userId) && 
                     request.resource.data.role == 'owner' && 
                     request.resource.data.isOwner == true;
       
-      allow update: if isSignedIn() && (
+      allow update: if isValidId(userId) && isSignedIn() && (
         (isOwner(userId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fullName', 'phone'])) ||
         (isMemberOf(resource.data.companyId) && hasPermission('users.manage') && request.resource.data.companyId == resource.data.companyId)
       );
@@ -57,44 +66,56 @@ service cloud.firestore {
 
     // Companies
     match /companies/{companyId} {
-      allow read: if isMemberOf(companyId);
+      allow get: if isValidId(companyId) && isMemberOf(companyId);
+      allow list: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
       
-      allow create: if isSignedIn() && request.resource.data.ownerUid == request.auth.uid;
+      allow create: if isValidId(companyId) && isSignedIn() && request.resource.data.ownerUid == request.auth.uid;
       
-      allow update: if isMemberOf(companyId) && hasPermission('settings.view') && 
-                    request.resource.data.ownerUid == resource.data.ownerUid;
+      allow update: if isValidId(companyId) && (isMemberOf(companyId) || isCompanyOwner(companyId)) && 
+                    (hasPermission('settings.view') || isCompanyOwner(companyId));
 
       // Modules subcollection
       match /modules/{moduleId} {
-        allow read: if isMemberOf(companyId);
-        allow write: if isMemberOf(companyId) && hasPermission('settings.view');
+        allow get: if isValidId(moduleId) && isMemberOf(companyId);
+        allow list: if isMemberOf(companyId);
+
+        allow write: if isValidId(moduleId) && (isMemberOf(companyId) || isCompanyOwner(companyId)) && 
+                     (hasPermission('settings.view') || isCompanyOwner(companyId));
       }
 
       match /invoices/{invoiceId} {
-        allow read: if isMemberOf(companyId) && hasPermission('sales.view');
-        allow create: if isMemberOf(companyId) && hasPermission('sales.create');
-        allow update: if isMemberOf(companyId) && hasPermission('sales.edit');
+        allow get: if isValidId(invoiceId) && isMemberOf(companyId) && hasPermission('sales.view');
+        allow list: if isMemberOf(companyId) && hasPermission('sales.view');
+
+        allow create: if isValidId(invoiceId) && isMemberOf(companyId) && hasPermission('sales.create');
+        allow update: if isValidId(invoiceId) && isMemberOf(companyId) && hasPermission('sales.edit');
       }
 
       match /inventoryAdjustments/{adjustmentId} {
-        allow read: if isMemberOf(companyId) && hasPermission('inventory.view');
-        allow create: if isMemberOf(companyId) && hasPermission('inventory.edit');
+        allow get: if isValidId(adjustmentId) && isMemberOf(companyId) && hasPermission('inventory.view');
+        allow list: if isMemberOf(companyId) && hasPermission('inventory.view');
+
+        allow create: if isValidId(adjustmentId) && isMemberOf(companyId) && hasPermission('inventory.edit');
       }
     }
 
     // Products
     match /products/{productId} {
-      allow read: if isSignedIn() && isMemberOf(resource.data.companyId) && hasPermission('inventory.view');
-      allow create: if isSignedIn() && isMemberOf(request.resource.data.companyId) && hasPermission('inventory.edit');
-      allow update: if isSignedIn() && isMemberOf(resource.data.companyId) && hasPermission('inventory.edit');
-      allow delete: if isSignedIn() && isMemberOf(resource.data.companyId) && hasPermission('inventory.edit');
+      allow get: if isValidId(productId) && isSignedIn() && isMemberOf(resource.data.companyId) && hasPermission('inventory.view');
+      allow list: if isSignedIn() && isMemberOf(resource.data.companyId) && hasPermission('inventory.view');
+
+      allow create: if isValidId(productId) && isSignedIn() && isMemberOf(request.resource.data.companyId) && hasPermission('inventory.edit');
+      allow update: if isValidId(productId) && isSignedIn() && isMemberOf(resource.data.companyId) && hasPermission('inventory.edit');
+      allow delete: if isValidId(productId) && isSignedIn() && isMemberOf(resource.data.companyId) && hasPermission('inventory.edit');
     }
 
     // Customers
     match /customers/{customerId} {
-      allow read: if isSignedIn() && isMemberOf(resource.data.companyId) && hasPermission('customers.view');
-      allow create: if isSignedIn() && isMemberOf(request.resource.data.companyId) && hasPermission('customers.create');
-      allow update: if isSignedIn() && isMemberOf(resource.data.companyId) && hasPermission('customers.edit');
+      allow get: if isValidId(customerId) && isSignedIn() && isMemberOf(resource.data.companyId) && hasPermission('customers.view');
+      allow list: if isSignedIn() && isMemberOf(resource.data.companyId) && hasPermission('customers.view');
+
+      allow create: if isValidId(customerId) && isSignedIn() && isMemberOf(request.resource.data.companyId) && hasPermission('customers.create');
+      allow update: if isValidId(customerId) && isSignedIn() && isMemberOf(resource.data.companyId) && hasPermission('customers.edit');
     }
   }
 }

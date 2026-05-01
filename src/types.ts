@@ -2,12 +2,32 @@ import { Timestamp } from 'firebase/firestore';
 
 export type Role = 'owner' | 'admin' | 'accountant' | 'cashier' | 'viewer' | 'sales' | 'inventory' | 'hr';
 
-export type ModuleKey = 
-  | 'dashboard' | 'customers' | 'suppliers' | 'invoices' | 'receipts' 
-  | 'payments' | 'expenses' | 'accounting' | 'reports' | 'pos' 
-  | 'inventory' | 'barcode' | 'warehouses' | 'products' | 'projects' 
-  | 'contracts' | 'hr' | 'services' | 'orders' | 'tables' 
-  | 'kitchen' | 'recruitment' | 'attachments';
+export type ModuleCategory = 'finance' | 'sales' | 'hr' | 'operations' | 'settings';
+
+export interface Module {
+  id: string;
+  key: string;
+  name_ar: string;
+  name_en: string;
+  icon: string;
+  category: ModuleCategory;
+  route: string;
+  order_number: number;
+  is_active: boolean;
+}
+
+export interface Permission {
+  id: string;
+  key: string;
+  name_ar: string;
+}
+
+export interface DBCompanyModule {
+  id: string;
+  company_id: string;
+  module_key: string;
+  is_enabled: boolean;
+}
 
 export type SectorKey = 
   | 'services' | 'construction' | 'grocery' | 'laundry' 
@@ -27,7 +47,7 @@ export interface Company {
 export interface CompanyModule {
   id: string;
   companyId: string;
-  moduleKey: ModuleKey;
+  moduleKey: string;
   isEnabled: boolean;
   enabledBy: string;
   createdAt: Timestamp;

@@ -2,25 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Layout, Check, AlertTriangle, Loader2 } from 'lucide-react';
-import { BUSINESS_SECTORS, ALL_MODULES } from '@/constants/sectors';
+import { Check, AlertTriangle, Loader2, Layout } from 'lucide-react';
+import { BUSINESS_SECTORS } from '@/constants/sectors';
 import { useFirebase } from '@/components/FirebaseProvider';
-import { ModuleKey } from '@/types';
+import { useModules } from '@/components/ModuleProvider';
 import { cn } from '@/lib/utils';
-import { collection, query, getDocs, doc, writeBatch, serverTimestamp, getDoc } from 'firebase/firestore';
+import { supabase } from '@/lib/supabase';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { toast } from 'sonner';
+import { DynamicIcon } from '@/components/DynamicIcon';
 
 export default function ModulesSettings() {
-  const { profile, enabledModules: currentEnabledModules } = useFirebase();
-  const [selectedModules, setSelectedModules] = useState<ModuleKey[]>([]);
+  const { profile } = useFirebase();
+  const { modules, enabledModuleKeys } = useModules();
+  const [selectedModules, setSelectedModules] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [companySector, setCompanySector] = useState<string>('');
 
   useEffect(() => {
-    if (profile?.companyId) {
-      setSelectedModules(currentEnabledModules);
+    if (profile?.companyId && modules.length > 0) {
+      setSelectedModules(enabledModuleKeys);
       
       const fetchCompany = async () => {
         const companyDoc = await getDoc(doc(db, 'companies', profile.companyId));
@@ -31,9 +34,9 @@ export default function ModulesSettings() {
       };
       fetchCompany();
     }
-  }, [profile?.companyId, currentEnabledModules]);
+  }, [profile?.companyId, enabledModuleKeys, modules]);
 
-  const toggleModule = (moduleKey: ModuleKey) => {
+  const toggleModule = (moduleKey: string) => {
     setSelectedModules(prev => 
       prev.includes(moduleKey) 
         ? prev.filter(m => m !== moduleKey)
@@ -46,28 +49,29 @@ export default function ModulesSettings() {
     setSaving(true);
 
     try {
-      // We need to delete old module records and add new ones
-      // Or update them. A batch is best.
-      const batch = writeBatch(db);
-      
-      // Get all current module docs to delete/update
-      const modulesSnapshot = await getDocs(collection(db, 'companies', profile.companyId, 'modules'));
-      modulesSnapshot.docs.forEach(d => batch.delete(d.ref));
+      // 1. Delete all existing module links for this company in Supabase
+      const { error: deleteError } = await supabase
+        .from('company_modules')
+        .delete()
+        .eq('company_id', profile.companyId);
 
-      // Add new ones
-      selectedModules.forEach(moduleKey => {
-        const moduleRef = doc(collection(db, 'companies', profile.companyId, 'modules'));
-        batch.set(moduleRef, {
-          moduleKey,
-          isEnabled: true,
-          enabledBy: profile.uid,
-          createdAt: serverTimestamp()
-        });
-      });
+      if (deleteError) throw deleteError;
 
-      await batch.commit();
+      // 2. Insert new selections
+      const moduleInserts = selectedModules.map(key => ({
+        company_id: profile.companyId,
+        module_key: key,
+        is_enabled: true
+      }));
+
+      const { error: insertError } = await supabase
+        .from('company_modules')
+        .insert(moduleInserts);
+
+      if (insertError) throw insertError;
+
       toast.success('تم تحديث إعدادات الوحدات بنجاح');
-      window.location.reload(); // To refresh Sidebar
+      window.location.reload(); 
     } catch (error) {
       console.error('Error saving modules:', error);
       toast.error('حدث خطأ أثناء حفظ الإعدادات');
@@ -113,7 +117,7 @@ export default function ModulesSettings() {
               </CardHeader>
               <CardContent className="p-8">
                 <div className="grid md:grid-cols-2 gap-4">
-                  {ALL_MODULES.map((module) => (
+                  {modules.map((module) => (
                     <button
                       key={module.key}
                       onClick={() => toggleModule(module.key)}
@@ -128,11 +132,15 @@ export default function ModulesSettings() {
                         "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
                         selectedModules.includes(module.key) ? "bg-primary text-white" : "bg-slate-100 text-slate-400"
                       )}>
-                        {selectedModules.includes(module.key) ? <Check className="w-5 h-5" /> : <Layout className="w-5 h-5" />}
+                        {selectedModules.includes(module.key) ? (
+                          <Check className="w-5 h-5" />
+                        ) : (
+                          <DynamicIcon name={module.icon} className="w-5 h-5" />
+                        )}
                       </div>
                       <div className="flex-1">
-                        <p className="font-black text-sm text-slate-900">{module.name}</p>
-                        <p className="text-[10px] text-slate-400 font-bold">{module.description}</p>
+                        <p className="font-black text-sm text-slate-900">{module.name_ar}</p>
+                        <p className="text-[10px] text-slate-400 font-bold">{module.name_en}</p>
                       </div>
                     </button>
                   ))}
@@ -174,12 +182,12 @@ export default function ModulesSettings() {
               <CardContent className="p-8 space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-slate-500 font-bold">الوحدات المفعلة</span>
-                  <span className="font-black text-primary">{selectedModules.length} من {ALL_MODULES.length}</span>
+                  <span className="font-black text-primary">{selectedModules.length} من {modules.length}</span>
                 </div>
                 <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                   <div 
                     className="bg-primary h-full transition-all duration-1000" 
-                    style={{ width: `${(selectedModules.length / ALL_MODULES.length) * 100}%` }}
+                    style={{ width: `${(selectedModules.length / (modules.length || 1)) * 100}%` }}
                   />
                 </div>
               </CardContent>
