@@ -559,9 +559,35 @@ export default function PointOfSale() {
           
           <style dangerouslySetInnerHTML={{ __html: `
             @media print {
-              body * { visibility: hidden; }
-              #receipt-content, #receipt-content * { visibility: visible; }
-              #receipt-content { position: absolute; left: 0; top: 0; width: 100%; }
+              @page {
+                margin: 0;
+                size: auto;
+              }
+              body {
+                margin: 0;
+                padding: 0;
+                background-color: white !important;
+              }
+              body * { 
+                visibility: hidden; 
+              }
+              #receipt-content, #receipt-content * { 
+                visibility: visible; 
+              }
+              #receipt-content { 
+                position: fixed; 
+                left: 0; 
+                top: 0; 
+                width: 80mm; /* Standard thermal receipt width */
+                max-width: 100%;
+                margin: 0 auto;
+                padding: 5mm;
+                background: white !important;
+                color: black !important;
+              }
+              .no-print {
+                display: none !important;
+              }
             }
           `}} />
         </div>

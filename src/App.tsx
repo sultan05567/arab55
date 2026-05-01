@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { MainLayout } from './components/layout/MainLayout';
 import Dashboard from './pages/Dashboard';
 import Invoices from './pages/sales/Invoices';
@@ -17,13 +17,58 @@ import PointOfSale from './pages/pos/PointOfSale';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import OnboardingFlow from './pages/onboarding/OnboardingFlow';
+import SettingsIndex from './pages/settings/SettingsIndex';
+import ModulesSettings from './pages/settings/ModulesSettings';
+import UsersSettings from './pages/settings/UsersSettings';
+import Forbidden from './pages/Forbidden';
 import { Toaster } from 'sonner';
 import { FirebaseProvider, useFirebase } from './components/FirebaseProvider';
+import { ModuleKey } from './types';
+import { useEffect, useState } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from './services/firebase';
+import { Layout, Users } from 'lucide-react';
+import { Button } from './components/ui/button';
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useFirebase();
+function ProtectedRoute({ 
+  children, 
+  module, 
+  permission 
+}: { 
+  children: React.ReactNode, 
+  module?: ModuleKey, 
+  permission?: string 
+}) {
+  const { user, profile, loading, isModuleEnabled, hasPermission, isAuthReady } = useFirebase();
+  const location = useLocation();
+  const [isOnboardingCheckDone, setIsOnboardingCheckDone] = useState(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
-  if (loading) {
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      if (!user || !profile) return;
+      
+      try {
+        const companyDoc = await getDoc(doc(db, 'companies', profile.companyId));
+        if (companyDoc.exists()) {
+          setNeedsOnboarding(!companyDoc.data().onboardingCompleted);
+        }
+      } catch (error) {
+        console.error("Error checking onboarding status:", error);
+      } finally {
+        setIsOnboardingCheckDone(true);
+      }
+    };
+
+    if (isAuthReady && user && profile) {
+      checkOnboarding();
+    } else if (isAuthReady && !user) {
+      setIsOnboardingCheckDone(true);
+    }
+  }, [user, profile, isAuthReady]);
+
+  if (loading || !isAuthReady || (user && !isOnboardingCheckDone)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -32,7 +77,25 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" state={{ from: location }} />;
+  }
+
+  if (needsOnboarding && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" />;
+  }
+
+  if (!needsOnboarding && location.pathname === '/onboarding') {
+    return <Navigate to="/dashboard" />;
+  }
+
+  // Check module
+  if (module && !isModuleEnabled(module)) {
+    return <Navigate to="/forbidden" />;
+  }
+
+  // Check permission
+  if (permission && !hasPermission(permission)) {
+    return <Navigate to="/forbidden" />;
   }
 
   return <>{children}</>;
@@ -47,10 +110,19 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forbidden" element={<Forbidden />} />
+          <Route 
+            path="/onboarding" 
+            element={
+              <ProtectedRoute>
+                <OnboardingFlow />
+              </ProtectedRoute>
+            } 
+          />
           <Route 
             path="/dashboard" 
             element={
-              <ProtectedRoute>
+              <ProtectedRoute module="dashboard" permission="dashboard.view">
                 <MainLayout>
                   <Dashboard />
                 </MainLayout>
@@ -60,7 +132,7 @@ export default function App() {
           <Route 
             path="/pos" 
             element={
-              <ProtectedRoute>
+              <ProtectedRoute module="pos" permission="pos.view">
                 <MainLayout hPadding={false}>
                   <PointOfSale />
                 </MainLayout>
@@ -70,7 +142,7 @@ export default function App() {
           <Route 
             path="/sales" 
             element={
-              <ProtectedRoute>
+              <ProtectedRoute module="invoices" permission="sales.view">
                 <MainLayout>
                   <Invoices />
                 </MainLayout>
@@ -80,7 +152,7 @@ export default function App() {
           <Route 
             path="/sales/new" 
             element={
-              <ProtectedRoute>
+              <ProtectedRoute module="invoices" permission="sales.create">
                 <MainLayout>
                   <CreateInvoice />
                 </MainLayout>
@@ -90,7 +162,7 @@ export default function App() {
           <Route 
             path="/purchases" 
             element={
-              <ProtectedRoute>
+              <ProtectedRoute module="suppliers" permission="purchases.view">
                 <MainLayout>
                   <Bills />
                 </MainLayout>
@@ -100,7 +172,7 @@ export default function App() {
           <Route 
             path="/finance" 
             element={
-              <ProtectedRoute>
+              <ProtectedRoute module="receipts" permission="finance.view">
                 <MainLayout>
                   <FinanceAccounts />
                 </MainLayout>
@@ -110,7 +182,7 @@ export default function App() {
           <Route 
             path="/hr" 
             element={
-              <ProtectedRoute>
+              <ProtectedRoute module="hr" permission="hr.view">
                 <MainLayout>
                   <Employees />
                 </MainLayout>
@@ -120,7 +192,7 @@ export default function App() {
           <Route 
             path="/crm" 
             element={
-              <ProtectedRoute>
+              <ProtectedRoute module="customers" permission="customers.view">
                 <MainLayout>
                   <Contacts />
                 </MainLayout>
@@ -130,7 +202,7 @@ export default function App() {
           <Route 
             path="/inventory" 
             element={
-              <ProtectedRoute>
+              <ProtectedRoute module="inventory" permission="inventory.view">
                 <MainLayout>
                   <Products />
                 </MainLayout>
@@ -140,7 +212,7 @@ export default function App() {
           <Route 
             path="/inventory/adjustments" 
             element={
-              <ProtectedRoute>
+              <ProtectedRoute module="inventory" permission="inventory.view">
                 <MainLayout>
                   <InventoryAdjustments />
                 </MainLayout>
@@ -150,7 +222,7 @@ export default function App() {
           <Route 
             path="/inventory/adjustments/new" 
             element={
-              <ProtectedRoute>
+              <ProtectedRoute module="inventory" permission="inventory.view">
                 <MainLayout>
                   <CreateAdjustment />
                 </MainLayout>
@@ -160,7 +232,7 @@ export default function App() {
           <Route 
             path="/accounting" 
             element={
-              <ProtectedRoute>
+              <ProtectedRoute module="accounting" permission="accounting.view">
                 <MainLayout>
                   <ChartOfAccounts />
                 </MainLayout>
@@ -170,7 +242,7 @@ export default function App() {
           <Route 
             path="/accounting/journal" 
             element={
-              <ProtectedRoute>
+              <ProtectedRoute module="accounting" permission="accounting.view">
                 <MainLayout>
                   <JournalEntries />
                 </MainLayout>
@@ -180,7 +252,7 @@ export default function App() {
           <Route 
             path="/accounting/journal/new" 
             element={
-              <ProtectedRoute>
+              <ProtectedRoute module="accounting" permission="accounting.view">
                 <MainLayout>
                   <CreateJournalEntry />
                 </MainLayout>
@@ -190,7 +262,7 @@ export default function App() {
           <Route 
             path="/projects" 
             element={
-              <ProtectedRoute>
+              <ProtectedRoute module="projects" permission="projects.view">
                 <MainLayout>
                   <div className="p-8 text-center">
                     <h1 className="text-2xl font-bold">وحدة المشاريع</h1>
@@ -203,7 +275,7 @@ export default function App() {
           <Route 
             path="/reports" 
             element={
-              <ProtectedRoute>
+              <ProtectedRoute module="reports" permission="reports.view">
                 <MainLayout>
                   <div className="p-8 text-center">
                     <h1 className="text-2xl font-bold">التقارير</h1>
@@ -216,13 +288,24 @@ export default function App() {
           <Route 
             path="/settings" 
             element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <div className="p-8 text-center">
-                    <h1 className="text-2xl font-bold">الإعدادات</h1>
-                    <p className="text-muted-foreground">قيد التطوير...</p>
-                  </div>
-                </MainLayout>
+              <ProtectedRoute permission="settings.view">
+                <SettingsIndex />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/settings/modules" 
+            element={
+              <ProtectedRoute permission="settings.view">
+                <ModulesSettings />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/settings/users" 
+            element={
+              <ProtectedRoute permission="users.manage">
+                <UsersSettings />
               </ProtectedRoute>
             } 
           />

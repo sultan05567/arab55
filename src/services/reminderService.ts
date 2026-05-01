@@ -18,23 +18,16 @@ export async function sendOverdueReminders(companyId: string) {
       return { success: true, count: 0 };
     }
 
-    let sentCount = 0;
-    for (const invoice of overdueInvoices) {
-      // In a real app, this would call an API to send a real email
-      // e.g., await fetch('/api/send-email', { method: 'POST', body: JSON.stringify({ to: invoice.customerEmail, ... }) });
-      
-      console.log(`Sending reminder to ${invoice.customerName} for invoice ${invoice.number}`);
-      
-      // Update the invoice to mark that a reminder was sent
-      const invoiceDocRef = doc(db, `companies/${companyId}/invoices`, invoice.id);
-      await updateDoc(invoiceDocRef, {
-        reminderSentAt: new Date().toISOString()
-      });
-      
-      sentCount++;
-    }
+    const response = await fetch('/api/reminders/trigger', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
 
-    return { success: true, count: sentCount };
+    if (!response.ok) throw new Error('Failed to trigger reminders');
+    
+    // We still return a count of 1 as a placeholder if successful, 
+    // real count would come from a better API response if needed.
+    return { success: true, count: overdueInvoices.length };
   } catch (error) {
     console.error('Error sending reminders:', error);
     throw error;

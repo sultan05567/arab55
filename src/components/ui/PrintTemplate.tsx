@@ -38,7 +38,7 @@ export function PrintTemplate({
             <img src={logo} alt="Logo" className="h-20 w-auto mb-4" referrerPolicy="no-referrer" />
           ) : (
             <div className="w-20 h-20 bg-primary rounded-xl flex items-center justify-center text-white font-bold text-4xl mb-4">
-              A
+              Q
             </div>
           )}
         </div>
@@ -64,8 +64,8 @@ export function PrintTemplate({
       <div className="mt-20 pt-8 border-t border-slate-200 text-center">
         <p className="text-sm text-slate-500 mb-4">شكراً لتعاملكم معنا</p>
         <div className="flex justify-center gap-12 text-xs text-slate-400">
-          <p>تم الإنشاء بواسطة نظام ARAB</p>
-          <p>https://arab1000.online</p>
+          <p>تم الإنشاء بواسطة نظام QAYD</p>
+          <p>https://qayd.online</p>
         </div>
       </div>
     </div>

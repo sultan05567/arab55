@@ -15,6 +15,7 @@ import { useFirebase } from '@/components/FirebaseProvider';
 import { auth } from '@/services/firebase';
 import { signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 export function Topbar() {
   const { user } = useFirebase();
@@ -36,12 +37,15 @@ export function Topbar() {
   return (
     <header className="h-16 bg-card border-b border-border flex items-center justify-between px-8 z-10">
       <div className="flex items-center gap-4 w-1/3">
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input 
-            placeholder="بحث في النظام..." 
-            className="pr-10 bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary"
-          />
+        <div className="relative w-full max-w-sm group cursor-pointer" onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}>
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+          <div className="w-full h-10 pr-10 pl-12 bg-muted/50 rounded-xl border border-transparent hover:border-primary/20 transition-all flex items-center text-sm text-muted-foreground">
+            بحث في النظام...
+          </div>
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1 px-1.5 py-0.5 bg-background border border-border rounded text-[10px] font-black text-muted-foreground opacity-60">
+            <span>CTRL</span>
+            <span>K</span>
+          </div>
         </div>
       </div>
 
@@ -85,5 +89,3 @@ export function Topbar() {
     </header>
   );
 }
-
-import { cn } from '@/lib/utils';

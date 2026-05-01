@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { cn } from '@/lib/utils';
+import { CommandPalette } from '../CommandPalette';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -11,6 +12,7 @@ interface MainLayoutProps {
 export function MainLayout({ children, hPadding = true }: MainLayoutProps) {
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden" dir="rtl">
+      <CommandPalette />
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Topbar />

@@ -13,7 +13,10 @@ import {
   Clock,
   AlertCircle,
   XCircle,
-  Receipt
+  Receipt,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import { 
   Table, 
@@ -51,7 +54,7 @@ const mockBills: Bill[] = [
   { id: '2', number: 'BILL-2024-002', supplierName: 'مؤسسة النور للمقاولات', date: '2024-03-15', dueDate: '2024-04-15', total: 12000, status: 'pending' },
   { id: '3', number: 'BILL-2024-003', supplierName: 'شركة التوريدات العالمية', date: '2024-03-20', dueDate: '2024-03-22', total: 3500, status: 'overdue' },
   { id: '4', number: 'BILL-2024-004', supplierName: 'مطاعم السعادة', date: '2024-03-22', dueDate: '2024-04-22', total: 1500, status: 'pending' },
-  { id: '5', number: 'BILL-2024-005', supplierName: 'مكتبة البيان', date: '2024-03-25', dueDate: '2024-04-25', total: 800, status: 'draft' },
+  { id: '5', number: 'BILL-2024-005', supplierName: 'مكتبة البيان', date: '2024-03-25', dueDate: '', total: 800, status: 'draft' },
 ];
 
 const statusConfig = {
@@ -63,6 +66,50 @@ const statusConfig = {
 
 export default function Bills() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortConfig, setSortConfig] = useState<{ key: keyof Bill | ''; direction: 'asc' | 'desc' | '' }>({ key: '', direction: '' });
+
+  const filteredBills = mockBills.filter(bill => 
+    bill.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    bill.supplierName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const sortedBills = [...filteredBills].sort((a, b) => {
+    if (!sortConfig.key) return 0;
+    
+    const aValue = a[sortConfig.key];
+    const bValue = b[sortConfig.key];
+
+    if (aValue === undefined || bValue === undefined) return 0;
+
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      return sortConfig.direction === 'asc' 
+        ? aValue.localeCompare(bValue) 
+        : bValue.localeCompare(aValue);
+    }
+
+    if (typeof aValue === 'number' && typeof bValue === 'number') {
+      return sortConfig.direction === 'asc' 
+        ? aValue - bValue 
+        : bValue - aValue;
+    }
+
+    return 0;
+  });
+
+  const handleSort = (key: keyof Bill) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const SortIcon = ({ column }: { column: keyof Bill }) => {
+    if (sortConfig.key !== column) return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
+    return sortConfig.direction === 'asc' 
+      ? <ArrowUp className="ml-2 h-4 w-4" /> 
+      : <ArrowDown className="ml-2 h-4 w-4" />;
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -140,17 +187,65 @@ export default function Bills() {
           <Table>
             <TableHeader className="bg-muted/30">
               <TableRow>
-                <TableHead className="w-[150px]">رقم الفاتورة</TableHead>
-                <TableHead>المورد</TableHead>
-                <TableHead>التاريخ</TableHead>
-                <TableHead>تاريخ الاستحقاق</TableHead>
-                <TableHead className="text-right">الإجمالي</TableHead>
-                <TableHead className="text-center">الحالة</TableHead>
+                <TableHead 
+                  className="w-[150px] cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => handleSort('number')}
+                >
+                  <div className="flex items-center">
+                    رقم الفاتورة
+                    <SortIcon column="number" />
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => handleSort('supplierName')}
+                >
+                  <div className="flex items-center">
+                    المورد
+                    <SortIcon column="supplierName" />
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => handleSort('date')}
+                >
+                  <div className="flex items-center">
+                    التاريخ
+                    <SortIcon column="date" />
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => handleSort('dueDate')}
+                >
+                  <div className="flex items-center">
+                    تاريخ الاستحقاق
+                    <SortIcon column="dueDate" />
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="text-right cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => handleSort('total')}
+                >
+                  <div className="flex items-center justify-end">
+                    الإجمالي
+                    <SortIcon column="total" />
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="text-center cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => handleSort('status')}
+                >
+                  <div className="flex items-center justify-center">
+                    الحالة
+                    <SortIcon column="status" />
+                  </div>
+                </TableHead>
                 <TableHead className="w-[100px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockBills.map((bill) => {
+              {sortedBills.map((bill) => {
                 const status = statusConfig[bill.status];
                 const StatusIcon = status.icon;
                 return (
@@ -158,7 +253,7 @@ export default function Bills() {
                     <TableCell className="font-bold text-primary">{bill.number}</TableCell>
                     <TableCell className="font-medium">{bill.supplierName}</TableCell>
                     <TableCell>{bill.date}</TableCell>
-                    <TableCell>{bill.dueDate}</TableCell>
+                    <TableCell>{bill.dueDate || 'N/A'}</TableCell>
                     <TableCell className="text-right font-bold">{bill.total.toLocaleString()} ر.س</TableCell>
                     <TableCell className="text-center">
                       <Badge variant="outline" className={cn("gap-1.5 px-3 py-1 rounded-full border", status.color)}>

@@ -84,9 +84,9 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl text-white font-bold text-3xl shadow-xl shadow-primary/20 mb-6">
-            A
+            Q
           </div>
-          <h1 className="text-3xl font-black tracking-tighter">ARAB</h1>
+          <h1 className="text-3xl font-black tracking-tighter">QAYD</h1>
           <p className="text-muted-foreground mt-2">مرحباً بك مجدداً في نظامك الإداري الذكي</p>
         </div>
 

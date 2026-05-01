@@ -9,9 +9,23 @@
         "taxNumber": { "type": "string", "description": "VAT/Tax number" },
         "ownerUid": { "type": "string", "description": "UID of the company owner" },
         "plan": { "type": "string", "enum": ["free", "pro", "enterprise"] },
+        "sectorKey": { "type": "string", "description": "Business sector key" },
+        "onboardingCompleted": { "type": "boolean", "description": "Whether onboarding is done" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["name", "ownerUid"]
+      "required": ["name", "ownerUid", "sectorKey"]
+    },
+    "CompanyModule": {
+      "title": "CompanyModule",
+      "description": "Enabled modules for a company",
+      "type": "object",
+      "properties": {
+        "companyId": { "type": "string" },
+        "moduleKey": { "type": "string" },
+        "isEnabled": { "type": "boolean" },
+        "enabledBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
     },
     "User": {
       "title": "User",
@@ -20,9 +34,10 @@
       "properties": {
         "fullName": { "type": "string" },
         "email": { "type": "string", "format": "email" },
-        "role": { "type": "string", "enum": ["owner", "admin", "accountant", "sales", "inventory", "hr"] },
+        "role": { "type": "string", "enum": ["owner", "admin", "accountant", "cashier", "viewer", "sales", "inventory", "hr"] },
+        "isOwner": { "type": "boolean" },
+        "permissions": { "type": "array", "items": { "type": "string" } },
         "companyId": { "type": "string" },
-        "branchId": { "type": "string" },
         "active": { "type": "boolean" }
       },
       "required": ["fullName", "email", "role", "companyId"]
@@ -79,6 +94,10 @@
     "/companies/{companyId}": {
       "schema": "Company",
       "description": "Company profile"
+    },
+    "/companies/{companyId}/modules/{moduleId}": {
+      "schema": "CompanyModule",
+      "description": "Enabled modules for the company"
     },
     "/users/{userId}": {
       "schema": "User",

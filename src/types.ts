@@ -1,11 +1,35 @@
 import { Timestamp } from 'firebase/firestore';
 
+export type Role = 'owner' | 'admin' | 'accountant' | 'cashier' | 'viewer' | 'sales' | 'inventory' | 'hr';
+
+export type ModuleKey = 
+  | 'dashboard' | 'customers' | 'suppliers' | 'invoices' | 'receipts' 
+  | 'payments' | 'expenses' | 'accounting' | 'reports' | 'pos' 
+  | 'inventory' | 'barcode' | 'warehouses' | 'products' | 'projects' 
+  | 'contracts' | 'hr' | 'services' | 'orders' | 'tables' 
+  | 'kitchen' | 'recruitment' | 'attachments';
+
+export type SectorKey = 
+  | 'services' | 'construction' | 'grocery' | 'laundry' 
+  | 'cafe_restaurant' | 'retail' | 'recruitment' | 'other';
+
 export interface Company {
   id: string;
   name: string;
   taxNumber?: string;
   ownerUid: string;
   plan: 'free' | 'pro' | 'enterprise';
+  sectorKey: SectorKey;
+  onboardingCompleted: boolean;
+  createdAt: Timestamp;
+}
+
+export interface CompanyModule {
+  id: string;
+  companyId: string;
+  moduleKey: ModuleKey;
+  isEnabled: boolean;
+  enabledBy: string;
   createdAt: Timestamp;
 }
 
@@ -14,7 +38,9 @@ export interface UserProfile {
   fullName: string;
   email: string;
   phone?: string;
-  role: 'owner' | 'admin' | 'accountant' | 'sales' | 'inventory' | 'hr';
+  role: Role;
+  isOwner: boolean;
+  permissions: string[];
   companyId: string;
   active: boolean;
   createdAt: Timestamp;

@@ -53,6 +53,8 @@ export default function RegisterPage() {
         taxNumber: formData.taxNumber,
         ownerUid: user.uid,
         plan: 'free',
+        sectorKey: 'other',
+        onboardingCompleted: false,
         createdAt: serverTimestamp()
       });
 
@@ -62,13 +64,15 @@ export default function RegisterPage() {
         email: formData.email,
         phone: formData.phone,
         role: 'owner',
+        isOwner: true,
+        permissions: [],
         companyId: companyId,
         active: true,
         createdAt: serverTimestamp()
       });
 
-      toast.success('تم تسجيل شركتك بنجاح! يمكنك الآن البدء.');
-      navigate('/dashboard');
+      toast.success('تم تسجيل شركتك بنجاح! السير نحو قمة النجاح يبدأ من هنا.');
+      navigate('/onboarding');
     } catch (error: any) {
       console.error('Registration error:', error);
       let message = 'حدث خطأ أثناء التسجيل';
@@ -88,9 +92,9 @@ export default function RegisterPage() {
       <div className="w-full max-w-2xl space-y-8">
         <div className="text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl text-white font-bold text-3xl shadow-xl shadow-primary/20 mb-6">
-            A
+            Q
           </div>
-          <h1 className="text-3xl font-black tracking-tighter">ARAB</h1>
+          <h1 className="text-3xl font-black tracking-tighter">QAYD</h1>
           <p className="text-muted-foreground mt-2">ابدأ رحلة النجاح مع النظام الإداري الأكثر تطوراً</p>
         </div>
 

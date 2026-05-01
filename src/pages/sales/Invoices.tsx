@@ -17,7 +17,8 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  Mail
+  Mail,
+  Receipt
 } from 'lucide-react';
 import { 
   Table, 
@@ -27,7 +28,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
   DropdownMenu, 
@@ -47,12 +48,12 @@ import { sendOverdueReminders } from '@/services/reminderService';
 import { toast } from 'sonner';
 
 const statusConfig = {
-  paid: { label: 'مدفوعة', color: 'bg-green-500/10 text-green-500 border-green-500/20', icon: CheckCircle2 },
-  issued: { label: 'مرسلة', color: 'bg-blue-500/10 text-blue-500 border-blue-500/20', icon: Clock },
-  overdue: { label: 'متأخرة', color: 'bg-red-500/10 text-red-500 border-red-500/20', icon: AlertCircle },
-  partially_paid: { label: 'مدفوعة جزئياً', color: 'bg-orange-500/10 text-orange-500 border-orange-500/20', icon: Clock },
-  draft: { label: 'مسودة', color: 'bg-slate-500/10 text-slate-500 border-slate-500/20', icon: Edit },
-  cancelled: { label: 'ملغاة', color: 'bg-red-500/10 text-red-500 border-red-500/20', icon: XCircle },
+  paid: { label: 'مدفوعة', color: 'bg-emerald-50 text-emerald-600 border-emerald-200', icon: CheckCircle2 },
+  issued: { label: 'مرسلة', color: 'bg-blue-50 text-blue-600 border-blue-200', icon: Clock },
+  overdue: { label: 'متأخرة', color: 'bg-rose-50 text-rose-600 border-rose-200', icon: AlertCircle },
+  partially_paid: { label: 'مدفوعة جزئياً', color: 'bg-amber-50 text-amber-600 border-amber-200', icon: Clock },
+  draft: { label: 'مسودة', color: 'bg-slate-100 text-slate-600 border-slate-200', icon: Edit },
+  cancelled: { label: 'ملغاة', color: 'bg-slate-50 text-slate-400 border-slate-200', icon: XCircle },
 };
 
 export default function Invoices() {
@@ -120,10 +121,10 @@ export default function Invoices() {
   };
 
   const SortIcon = ({ column }: { column: keyof Invoice }) => {
-    if (sortConfig.key !== column) return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
+    if (sortConfig.key !== column) return <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />;
     return sortConfig.direction === 'asc' 
-      ? <ArrowUp className="ml-2 h-4 w-4" /> 
-      : <ArrowDown className="ml-2 h-4 w-4" />;
+      ? <ArrowUp className="ml-2 h-3 w-3 text-primary" /> 
+      : <ArrowDown className="ml-2 h-3 w-3 text-primary" />;
   };
 
   const handleSendReminders = async () => {
@@ -160,112 +161,78 @@ export default function Invoices() {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
+    <div className="space-y-10 animate-in fade-in duration-700">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">فواتير المبيعات</h1>
-          <p className="text-muted-foreground">إدارة ومتابعة جميع فواتير المبيعات الخاصة بشركتك.</p>
+          <h1 className="text-4xl font-black tracking-tighter text-slate-900 mb-2">فواتير المبيعات</h1>
+          <p className="text-slate-500 font-medium">إدارة ومتابعة جميع فواتير المبيعات الخاصة بشركتك في مكان واحد.</p>
         </div>
-        <div className="flex gap-3">
-          <Card className="flex items-center px-4 py-2 gap-3 border shadow-none bg-muted/10 h-11">
-            <div className="flex flex-col text-left">
-              <span className="text-[10px] font-bold text-muted-foreground leading-none">تذكير تلقائي</span>
-              <span className="text-xs font-medium text-green-500">نشط</span>
-            </div>
-            <div className="w-8 h-4 bg-primary rounded-full relative cursor-pointer opacity-50">
-               <div className="absolute left-4 top-0.5 w-3 h-3 bg-white rounded-full transition-all"></div>
-            </div>
-          </Card>
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            size="lg" 
+            className="rounded-2xl gap-2 h-12 font-bold border-slate-200"
+            onClick={handleSendReminders}
+            disabled={sendingReminders}
+          >
+            {sendingReminders ? <Loader2 className="w-5 h-5 animate-spin" /> : <Mail className="w-5 h-5 text-primary" />}
+            إرسال التذكيرات
+          </Button>
           <Link to="/sales/new">
-            <Button className="gap-2 h-11 px-6 rounded-xl shadow-lg shadow-primary/20">
+            <Button size="lg" className="rounded-2xl gap-2 shadow-lg shadow-primary/20 h-12 font-bold">
               <Plus className="w-5 h-5" />
-              فاتورة جديدة
+              إنشاء فاتورة
             </Button>
           </Link>
         </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-4">
-        <Card className="border-none shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">إجمالي الفواتير</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total.toLocaleString()} ر.س</div>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">المدفوعة</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-500">{stats.paid.toLocaleString()} ر.س</div>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">غير المدفوعة</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-500">{stats.unpaid.toLocaleString()} ر.س</div>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">المتأخرة</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-500">{stats.overdue.toLocaleString()} ر.س</div>
-          </CardContent>
-        </Card>
+        {[
+          { label: 'إجمالي الفواتير', value: stats.total, color: 'text-slate-900', bg: 'bg-white' },
+          { label: 'المدفوعة', value: stats.paid, color: 'text-emerald-600', bg: 'bg-emerald-50/30' },
+          { label: 'غير المدفوعة', value: stats.unpaid, color: 'text-amber-600', bg: 'bg-amber-50/30' },
+          { label: 'المتأخرة', value: stats.overdue, color: 'text-rose-600', bg: 'bg-rose-50/30' },
+        ].map((stat, i) => (
+          <Card key={i} className={cn("border-none shadow-sm card-hover", stat.bg)}>
+            <CardContent className="p-6">
+              <p className="text-sm font-bold text-slate-500 mb-2">{stat.label}</p>
+              <div className={cn("text-2xl font-black tracking-tight", stat.color)}>{stat.value.toLocaleString()} ر.س</div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      <Card className="border-none shadow-sm overflow-hidden">
-        <CardHeader className="border-b border-border bg-muted/20">
-          <div className="flex items-center justify-between gap-4">
+      <Card className="border-none shadow-sm overflow-hidden rounded-3xl">
+        <CardHeader className="border-b border-slate-100 bg-white p-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="relative flex-1 max-w-sm">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input 
                 placeholder="بحث برقم الفاتورة أو العميل..." 
-                className="pr-10 bg-background"
+                className="pr-10 bg-slate-50 border-none rounded-xl h-11 font-medium"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             <div className="flex items-center gap-2">
-              {stats.overdue > 0 && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="gap-2 text-red-500 border-red-500/20 hover:bg-red-500/5"
-                  onClick={handleSendReminders}
-                  disabled={sendingReminders}
-                >
-                  {sendingReminders ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
-                  إرسال تذكيرات للمتأخرة
-                </Button>
-              )}
-              <Button variant="outline" size="sm" className="gap-2">
+              <Button variant="outline" size="sm" className="rounded-xl h-10 gap-2 border-slate-200">
                 <Filter className="w-4 h-4" />
                 تصفية
               </Button>
-              <Button variant="outline" size="sm" className="gap-2">
+              <Button variant="outline" size="sm" className="rounded-xl h-10 gap-2 border-slate-200">
                 <FileDown className="w-4 h-4" />
                 تصدير
-              </Button>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Printer className="w-4 h-4" />
-                طباعة
               </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
-            <TableHeader className="bg-muted/30">
-              <TableRow>
+            <TableHeader className="bg-slate-50/50">
+              <TableRow className="border-slate-100 hover:bg-transparent">
                 <TableHead 
-                  className="w-[150px] cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="h-14 cursor-pointer hover:text-primary transition-colors font-black text-slate-800"
                   onClick={() => handleSort('number')}
                 >
                   <div className="flex items-center">
@@ -274,7 +241,7 @@ export default function Invoices() {
                   </div>
                 </TableHead>
                 <TableHead 
-                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="cursor-pointer hover:text-primary transition-colors font-black text-slate-800"
                   onClick={() => handleSort('customerName')}
                 >
                   <div className="flex items-center">
@@ -283,7 +250,7 @@ export default function Invoices() {
                   </div>
                 </TableHead>
                 <TableHead 
-                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="cursor-pointer hover:text-primary transition-colors font-black text-slate-800"
                   onClick={() => handleSort('date')}
                 >
                   <div className="flex items-center">
@@ -292,16 +259,16 @@ export default function Invoices() {
                   </div>
                 </TableHead>
                 <TableHead 
-                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="cursor-pointer hover:text-primary transition-colors font-black text-slate-800 uppercase text-[11px]"
                   onClick={() => handleSort('dueDate')}
                 >
                   <div className="flex items-center">
-                    تاريخ الاستحقاق
+                    الاستحقاق
                     <SortIcon column="dueDate" />
                   </div>
                 </TableHead>
                 <TableHead 
-                  className="text-right cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="text-right cursor-pointer hover:text-primary transition-colors font-black text-slate-800"
                   onClick={() => handleSort('total')}
                 >
                   <div className="flex items-center justify-end">
@@ -309,66 +276,52 @@ export default function Invoices() {
                     <SortIcon column="total" />
                   </div>
                 </TableHead>
-                <TableHead 
-                  className="text-center cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => handleSort('status')}
-                >
-                  <div className="flex items-center justify-center">
-                    حالة الدفع
-                    <SortIcon column="status" />
-                  </div>
-                </TableHead>
-                <TableHead className="w-[100px]"></TableHead>
+                <TableHead className="text-center font-black text-slate-800">الحالة</TableHead>
+                <TableHead className="w-[80px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {sortedInvoices.map((invoice) => {
-                const status = statusConfig[invoice.status] || statusConfig.draft;
+                const status = statusConfig[invoice.status as keyof typeof statusConfig] || statusConfig.draft;
                 const StatusIcon = status.icon;
                 return (
-                  <TableRow key={invoice.id} className="hover:bg-muted/50 transition-colors">
-                    <TableCell className="font-bold text-primary">{invoice.number}</TableCell>
-                    <TableCell className="font-medium">{invoice.customerName}</TableCell>
-                    <TableCell>{invoice.date}</TableCell>
-                    <TableCell>{invoice.dueDate}</TableCell>
-                    <TableCell className="text-right font-bold">{invoice.total.toLocaleString()} ر.س</TableCell>
+                  <TableRow key={invoice.id} className="border-slate-50 hover:bg-slate-50/50 transition-colors group">
+                    <TableCell className="font-black text-primary py-5">#{invoice.number}</TableCell>
+                    <TableCell className="font-bold text-slate-700">{invoice.customerName}</TableCell>
+                    <TableCell className="text-slate-500 font-medium">{invoice.date}</TableCell>
+                    <TableCell className="text-slate-500 font-medium">{invoice.dueDate}</TableCell>
+                    <TableCell className="text-right font-black text-slate-900">{invoice.total.toLocaleString()} ر.س</TableCell>
                     <TableCell className="text-center">
                       <div className="flex flex-col items-center gap-1">
-                        <Badge variant="outline" className={cn("gap-1.5 px-3 py-1 rounded-full border", status.color)}>
+                        <Badge variant="outline" className={cn("gap-1.5 px-3 py-1 rounded-full border-none font-bold text-[11px]", status.color)}>
                           <StatusIcon className="w-3.5 h-3.5" />
                           {status.label}
                         </Badge>
                         {invoice.reminderSentAt && (
-                          <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                            <Mail className="w-3 h-3" />
-                            آخر تذكير: {new Date(invoice.reminderSentAt).toLocaleDateString()}
+                          <span className="text-[9px] font-bold text-slate-400 flex items-center gap-1">
+                            <Mail className="w-2.5 h-2.5" />
+                            تم التذكير {new Date(invoice.reminderSentAt).toLocaleDateString('ar-SA')}
                           </span>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
-                        <DropdownMenuTrigger>
-                          <div className="p-2 hover:bg-muted rounded-full cursor-pointer transition-colors">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </div>
+                        <DropdownMenuTrigger className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "rounded-xl opacity-0 group-hover:opacity-100 transition-opacity")}>
+                          <MoreHorizontal className="w-5 h-5 text-slate-400" />
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-40">
-                          <DropdownMenuItem className="gap-2">
-                            <Eye className="w-4 h-4" />
-                            عرض
+                        <DropdownMenuContent align="end" className="w-48 rounded-2xl p-2 border-slate-100 shadow-xl shadow-slate-200/50">
+                          <DropdownMenuItem className="gap-3 rounded-xl py-2.5 font-bold">
+                            <Eye className="w-4 h-4 text-slate-400" />
+                            عرض التفاصيل
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2">
-                            <Edit className="w-4 h-4" />
-                            تعديل
+                          <DropdownMenuItem className="gap-3 rounded-xl py-2.5 font-bold">
+                            <Printer className="w-4 h-4 text-slate-400" />
+                            طباعة الفاتورة
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2">
-                            <Printer className="w-4 h-4" />
-                            طباعة
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2 text-destructive">
+                          <DropdownMenuItem className="gap-3 rounded-xl py-2.5 font-bold text-rose-600 hover:bg-rose-50 hover:text-rose-600">
                             <Trash2 className="w-4 h-4" />
-                            حذف
+                            حذف الفاتورة
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -378,6 +331,21 @@ export default function Invoices() {
               })}
             </TableBody>
           </Table>
+          {sortedInvoices.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mb-4">
+                <Receipt className="w-10 h-10" />
+              </div>
+              <h3 className="text-lg font-black text-slate-900">لا توجد فواتير</h3>
+              <p className="text-slate-500 font-medium max-w-[250px] mx-auto">ابدأ بإصدار أول فاتورة مبيعات لعملائك الآن.</p>
+              <Link to="/sales/new" className="mt-6">
+                <Button className="rounded-xl gap-2 font-bold">
+                  <Plus className="w-5 h-5" />
+                  إنشاء فاتورة
+                </Button>
+              </Link>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

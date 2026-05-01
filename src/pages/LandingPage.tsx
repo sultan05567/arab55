@@ -29,9 +29,9 @@ export default function LandingPage() {
           <div className="flex items-center gap-12">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-primary/20">
-                A
+                Q
               </div>
-              <span className="text-2xl font-black tracking-tighter text-slate-900">ARAB</span>
+              <span className="text-2xl font-black tracking-tighter text-slate-900">QAYD</span>
             </div>
             
             <div className="hidden md:flex items-center gap-8">
@@ -73,7 +73,7 @@ export default function LandingPage() {
               من أي مكان وفي أي وقت
             </h1>
             <p className="text-xl text-slate-600 leading-relaxed mb-10 max-w-xl">
-              ARAB هو النظام المحاسبي والإداري السحابي المتكامل المصمم خصيصاً لنمو الشركات في السوق السعودي والخليجي. سهولة، سرعة، وأمان لا يضاهى.
+              QAYD هو النظام المحاسبي والإداري السحابي المتكامل المصمم خصيصاً لنمو الشركات في السوق السعودي والخليجي. سهولة، سرعة، وأمان لا يضاهى.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Button className="h-14 px-10 rounded-2xl text-lg font-bold shadow-xl shadow-primary/30">
@@ -157,9 +157,9 @@ export default function LandingPage() {
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-3 mb-8">
               <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white font-bold text-xl">
-                A
+                Q
               </div>
-              <span className="text-2xl font-black tracking-tighter">ARAB</span>
+              <span className="text-2xl font-black tracking-tighter">QAYD</span>
             </div>
             <p className="text-slate-400 text-lg max-w-md leading-relaxed">
               نحن هنا لنغير مفهوم الإدارة المحاسبية في العالم العربي. نظام ذكي، واجهة عصرية، ودعم فني متواصل.
@@ -186,7 +186,7 @@ export default function LandingPage() {
           </div>
         </div>
         <div className="max-w-7xl mx-auto mt-20 pt-8 border-t border-slate-800 text-center text-slate-500 text-sm">
-          جميع الحقوق محفوظة © 2024 ARAB | النظام المحاسبي والإداري الذكي
+          جميع الحقوق محفوظة © 2024 QAYD | النظام المحاسبي والإداري الذكي
         </div>
       </footer>
     </div>
