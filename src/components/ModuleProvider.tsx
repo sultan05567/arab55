@@ -48,11 +48,16 @@ export function ModuleProvider({ children }: { children: React.ReactNode }) {
 
         if (profile?.companyId) {
           // 2. Get enabled modules for company
-          const companyKeys = await moduleService.getCompanyModules(profile.companyId);
+          let companyKeys = await moduleService.getCompanyModules(profile.companyId);
+          
+          // 🔥 Default Modules if empty (prevent locking out new users)
+          if (companyKeys.length === 0) {
+            companyKeys = ['dashboard', 'customers', 'invoices', 'expenses'];
+          }
+          
           setEnabledModuleKeys(companyKeys);
 
-          // 3. Get permissions for the user's role (from Supabase if role exists there, 
-          // or derive from profile role key)
+          // 3. Get permissions
           const permissions = await moduleService.getUserPermissions(profile.role);
           setUserPermissions(permissions);
         }

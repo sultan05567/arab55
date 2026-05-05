@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Users, UserPlus, Shield, Check, Loader2, MoreHorizontal, Settings2 } from 'lucide-react';
 import { useFirebase } from '@/components/FirebaseProvider';
 import { UserProfile, Role } from '@/types';
-import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, setDoc, serverTimestamp, limit } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -52,15 +52,77 @@ export default function UsersSettings() {
   const [editPermissions, setEditPermissions] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserFullName, setNewUserFullName] = useState('');
+  const [newUserRole, setNewUserRole] = useState<Role>('cashier');
+  const [addingUser, setAddingUser] = useState(false);
+
+  const getDefaultPermissions = (role: Role): string[] => {
+    switch (role) {
+      case 'owner':
+      case 'admin':
+        return PERMISSIONS.map(p => p.key);
+      case 'accountant':
+        return ['dashboard.view', 'sales.view', 'sales.create', 'finance.view', 'accounting.view', 'accounting.edit'];
+      case 'cashier':
+        return ['pos.view', 'pos.sell', 'pos.refund'];
+      case 'viewer':
+        return ['dashboard.view', 'settings.view'];
+      default:
+        return [];
+    }
+  };
+
   useEffect(() => {
     if (profile?.companyId) {
       fetchUsers();
     }
   }, [profile?.companyId]);
 
+  const handleAddUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile?.companyId) return;
+    setAddingUser(true);
+
+    try {
+      // Check if user already exists in this company
+      const q = query(collection(db, 'users'), where('email', '==', newUserEmail), where('companyId', '==', profile.companyId));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        toast.error('المستخدم موجود بالفعل في هذه المؤسسة');
+        return;
+      }
+
+      const userRef = doc(collection(db, 'users'));
+      await setDoc(userRef, {
+        fullName: newUserFullName,
+        email: newUserEmail,
+        role: newUserRole,
+        isOwner: false,
+        permissions: getDefaultPermissions(newUserRole),
+        companyId: profile.companyId,
+        active: true,
+        createdAt: serverTimestamp()
+      });
+
+      toast.success('تم إضافة المستخدم بنجاح');
+      setIsAddDialogOpen(false);
+      setNewUserEmail('');
+      setNewUserFullName('');
+      setNewUserRole('cashier');
+      fetchUsers();
+    } catch (error) {
+      console.error('Error adding user:', error);
+      toast.error('حدث خطأ أثناء إضافة المستخدم');
+    } finally {
+      setAddingUser(false);
+    }
+  };
+
   const fetchUsers = async () => {
     try {
-      const q = query(collection(db, 'users'), where('companyId', '==', profile?.companyId));
+      const q = query(collection(db, 'users'), where('companyId', '==', profile?.companyId), limit(100));
       const snapshot = await getDocs(q);
       const userList = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile));
       setUsers(userList);
@@ -125,7 +187,11 @@ export default function UsersSettings() {
             <h1 className="text-4xl font-black tracking-tighter text-slate-900 mb-2">المستخدمين والصلاحيات</h1>
             <p className="text-slate-500 font-bold text-lg">أضف فريق عملك وحدد أدوارهم بدقة</p>
           </div>
-          <Button size="lg" className="rounded-2xl px-8 h-14 font-black text-lg gap-2 shadow-xl shadow-primary/20">
+          <Button 
+            size="lg" 
+            className="rounded-2xl px-8 h-14 font-black text-lg gap-2 shadow-xl shadow-primary/20"
+            onClick={() => setIsAddDialogOpen(true)}
+          >
             <UserPlus className="w-5 h-5" /> إضافة مستخدم جديد
           </Button>
         </div>
@@ -181,6 +247,69 @@ export default function UsersSettings() {
             </Table>
           </CardContent>
         </Card>
+
+        {/* Add User Dialog */}
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogContent className="max-w-md p-0 overflow-hidden border-none rounded-[2.5rem]" dir="rtl">
+            <DialogHeader className="p-8 bg-slate-50 border-b border-slate-100">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-primary font-black text-xl">
+                  <UserPlus className="w-6 h-6" />
+                </div>
+                <div>
+                  <DialogTitle className="text-xl font-black">إضافة مستخدم جديد</DialogTitle>
+                  <DialogDescription className="text-slate-500 font-bold">قم بتعبئة بيانات المستخدم الجديد</DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+            <form onSubmit={handleAddUser}>
+              <div className="p-8 space-y-4">
+                <div className="space-y-2">
+                  <Label className="font-black">الاسم الكامل</Label>
+                  <Input 
+                    value={newUserFullName}
+                    onChange={(e) => setNewUserFullName(e.target.value)}
+                    placeholder="أدخل اسم المستخدم..."
+                    className="rounded-xl h-12"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-black">البريد الإلكتروني</Label>
+                  <Input 
+                    type="email"
+                    value={newUserEmail}
+                    onChange={(e) => setNewUserEmail(e.target.value)}
+                    placeholder="email@example.com"
+                    className="rounded-xl h-12"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-black">الدور الوظيفي</Label>
+                  <Select value={newUserRole} onValueChange={(value: Role) => setNewUserRole(value)}>
+                    <SelectTrigger className="rounded-xl h-12">
+                      <SelectValue placeholder="اختر دوراً..." />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {ROLES.filter(r => r.key !== 'owner').map((role) => (
+                        <SelectItem key={role.key} value={role.key} className="font-bold">
+                          {role.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter className="p-8 pt-0 border-none bg-white flex items-center justify-between">
+                <Button type="button" variant="ghost" className="rounded-xl px-8" onClick={() => setIsAddDialogOpen(false)}>إلغاء</Button>
+                <Button size="lg" className="rounded-2xl px-12 h-14 font-black" disabled={addingUser}>
+                  {addingUser ? <Loader2 className="w-5 h-5 animate-spin" /> : 'إضافة المستخدم'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         {/* Edit Permissions Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>

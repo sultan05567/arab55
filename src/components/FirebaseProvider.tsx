@@ -71,11 +71,23 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
 
   const hasPermission = (permission: string): boolean => {
     if (!profile) return false;
-    if (profile.isOwner) return true;
+    
+    // 🔥 Owner Bypass: Owners have full access
+    if (profile.isOwner || profile.role === 'owner') return true;
+    
     return profile.permissions?.includes(permission) || false;
   };
 
   const isModuleEnabled = (module: string): boolean => {
+    // 🔥 Owner Bypass: Owners have access to all modules
+    if (profile?.isOwner || profile?.role === 'owner') return true;
+
+    // Use fetched modules or core defaults
+    const coreModules = ['dashboard', 'customers', 'invoices', 'expenses'];
+    if (enabledModules.length === 0) {
+      return coreModules.includes(module);
+    }
+    
     return enabledModules.includes(module);
   };
 

@@ -36,7 +36,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { collection, addDoc, serverTimestamp, getDocs, query, where } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDocs, query, where, limit } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '@/services/firebase';
 import { useFirebase } from '@/components/FirebaseProvider';
 import { Customer, Product, InvoiceItem } from '@/types';
@@ -60,10 +60,10 @@ export default function CreateInvoice() {
 
     const fetchInitialData = async () => {
       try {
-        const customersSnap = await getDocs(query(collection(db, 'customers'), where('companyId', '==', profile.companyId)));
+        const customersSnap = await getDocs(query(collection(db, 'customers'), where('companyId', '==', profile.companyId), limit(100)));
         setCustomers(customersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Customer)));
 
-        const productsSnap = await getDocs(query(collection(db, 'products'), where('companyId', '==', profile.companyId)));
+        const productsSnap = await getDocs(query(collection(db, 'products'), where('companyId', '==', profile.companyId), limit(100)));
         setProducts(productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
       } catch (error) {
         console.error("Error fetching initial data:", error);

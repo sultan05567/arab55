@@ -35,7 +35,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '@/services/firebase';
 import { useFirebase } from '@/components/FirebaseProvider';
 import { Customer, Invoice } from '@/types';
@@ -55,13 +55,15 @@ export default function Contacts() {
     const customersQuery = query(
       collection(db, customersPath),
       where('companyId', '==', profile.companyId),
-      orderBy('createdAt', 'desc')
+      orderBy('createdAt', 'desc'),
+      limit(100)
     );
 
     const invoicesPath = `companies/${profile.companyId}/invoices`;
     const invoicesQuery = query(
       collection(db, invoicesPath),
-      orderBy('createdAt', 'desc')
+      orderBy('createdAt', 'desc'),
+      limit(100)
     );
 
     const unsubscribeCustomers = onSnapshot(customersQuery, (snapshot) => {

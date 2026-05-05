@@ -90,16 +90,19 @@ function ProtectedRoute({
     return <Navigate to="/dashboard" />;
   }
 
+  // Owner bypass: Owners can access all modules and permissions
+  if (profile?.isOwner || profile?.role === 'owner') {
+    return <>{children}</>;
+  }
+
   // Check module (Dynamically from Supabase via ModuleProvider)
   if (module && !enabledModuleKeys.includes(module)) {
-    return <Navigate to="/forbidden" />;
+    return <Navigate to="/dashboard" />;
   }
 
   // Check permission (Dynamically from Supabase role_permissions)
   if (permission && !userPermissions.includes(permission)) {
-    // If it's a critical permission, we check if it's owner (owner bypass)
-    if (profile?.isOwner) return <>{children}</>;
-    return <Navigate to="/forbidden" />;
+    return <Navigate to="/dashboard" />;
   }
 
   return <>{children}</>;

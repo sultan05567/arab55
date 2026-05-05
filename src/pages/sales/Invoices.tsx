@@ -40,7 +40,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
 import { Invoice } from '@/types';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '@/services/firebase';
 import { useFirebase } from '@/components/FirebaseProvider';
 import { cn } from '@/lib/utils';
@@ -51,7 +51,7 @@ const statusConfig = {
   paid: { label: 'مدفوعة', color: 'bg-emerald-50 text-emerald-600 border-emerald-200', icon: CheckCircle2 },
   issued: { label: 'مرسلة', color: 'bg-blue-50 text-blue-600 border-blue-200', icon: Clock },
   overdue: { label: 'متأخرة', color: 'bg-rose-50 text-rose-600 border-rose-200', icon: AlertCircle },
-  partially_paid: { label: 'مدفوعة جزئياً', color: 'bg-amber-50 text-amber-600 border-amber-200', icon: Clock },
+  partially_paid: { label: 'قيد الدفع', color: 'bg-yellow-50 text-yellow-600 border-yellow-200', icon: Clock },
   draft: { label: 'مسودة', color: 'bg-slate-100 text-slate-600 border-slate-200', icon: Edit },
   cancelled: { label: 'ملغاة', color: 'bg-slate-50 text-slate-400 border-slate-200', icon: XCircle },
 };
@@ -70,7 +70,8 @@ export default function Invoices() {
     const path = `companies/${profile.companyId}/invoices`;
     const q = query(
       collection(db, path),
-      orderBy('createdAt', 'desc')
+      orderBy('createdAt', 'desc'),
+      limit(100)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {

@@ -60,7 +60,8 @@ export default function Dashboard() {
     const productsPath = 'products';
     const productsQuery = query(
       collection(db, productsPath),
-      where('companyId', '==', profile.companyId)
+      where('companyId', '==', profile.companyId),
+      limit(100)
     );
 
     const unsubscribeInvoices = onSnapshot(invoicesQuery, (snapshot) => {

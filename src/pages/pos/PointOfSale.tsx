@@ -27,7 +27,8 @@ import {
   serverTimestamp,
   doc,
   getDoc,
-  writeBatch
+  writeBatch,
+  limit
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '@/services/firebase';
 import { useFirebase } from '@/components/FirebaseProvider';
@@ -84,12 +85,14 @@ export default function PointOfSale() {
 
     const productsQuery = query(
       collection(db, 'products'),
-      where('companyId', '==', profile.companyId)
+      where('companyId', '==', profile.companyId),
+      limit(100)
     );
 
     const customersQuery = query(
       collection(db, 'customers'),
-      where('companyId', '==', profile.companyId)
+      where('companyId', '==', profile.companyId),
+      limit(100)
     );
 
     const unsubProducts = onSnapshot(productsQuery, (snapshot) => {

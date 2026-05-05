@@ -31,7 +31,8 @@ import {
   addDoc, 
   updateDoc, 
   serverTimestamp,
-  runTransaction
+  runTransaction,
+  limit
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '@/services/firebase';
 import { useFirebase } from '@/components/FirebaseProvider';
@@ -59,7 +60,7 @@ export default function CreateAdjustment() {
 
     const fetchProducts = async () => {
       try {
-        const q = query(collection(db, 'products'), where('companyId', '==', profile.companyId));
+        const q = query(collection(db, 'products'), where('companyId', '==', profile.companyId), limit(100));
         const snapshot = await getDocs(q);
         const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
         setProducts(docs);

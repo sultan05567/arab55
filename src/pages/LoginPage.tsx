@@ -8,7 +8,7 @@ import { Lock, Mail, ArrowRight, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth, db } from '@/services/firebase';
-import { doc, getDoc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, collection, query, where, limit, getDocs } from 'firebase/firestore';
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -27,24 +27,46 @@ export default function LoginPage() {
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       
       if (!userDoc.exists()) {
-        // If new user via Google, we need to create a default company or ask for one
-        // For now, let's create a default company for them
-        const companyId = doc(collection(db, 'companies')).id;
-        await setDoc(doc(db, 'companies', companyId), {
-          name: `${user.displayName || 'شركة'} الجديدة`,
-          ownerUid: user.uid,
-          plan: 'free',
-          createdAt: serverTimestamp()
-        });
+        // Check if user was pre-invited by email
+        const q = query(collection(db, 'users'), where('email', '==', user.email), limit(1));
+        const inviteSnap = await getDocs(q);
 
-        await setDoc(doc(db, 'users', user.uid), {
-          fullName: user.displayName || 'مستخدم جديد',
-          email: user.email,
-          role: 'owner',
-          companyId: companyId,
-          active: true,
-          createdAt: serverTimestamp()
-        });
+        if (!inviteSnap.empty) {
+          const inviteData = inviteSnap.docs[0].data();
+          const inviteDocId = inviteSnap.docs[0].id;
+
+          // Migrate/Link the invited user to this UID
+          await setDoc(doc(db, 'users', user.uid), {
+            ...inviteData,
+            uid: user.uid, // ensure uid is set
+            updatedAt: serverTimestamp()
+          });
+
+          // If the invite was a separate doc with a different ID, we might want to delete it
+          // but for simplicity we'll just ensure the UID doc exists.
+          if (inviteDocId !== user.uid) {
+            // Optional: delete old doc
+          }
+        } else {
+          // If new user via Google and no invitation, we need to create a default company or ask for one
+          const companyId = doc(collection(db, 'companies')).id;
+          await setDoc(doc(db, 'companies', companyId), {
+            name: `${user.displayName || 'شركة'} الجديدة`,
+            ownerUid: user.uid,
+            plan: 'free',
+            createdAt: serverTimestamp()
+          });
+
+          await setDoc(doc(db, 'users', user.uid), {
+            fullName: user.displayName || 'مستخدم جديد',
+            email: user.email,
+            role: 'owner',
+            isOwner: true,
+            companyId: companyId,
+            active: true,
+            createdAt: serverTimestamp()
+          });
+        }
       }
       
       toast.success('تم تسجيل الدخول بنجاح عبر Google');

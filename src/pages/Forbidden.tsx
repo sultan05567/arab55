@@ -19,9 +19,9 @@ export default function Forbidden() {
         </div>
         
         <div className="space-y-4">
-          <h1 className="text-4xl font-black tracking-tighter text-slate-900">غير مصرح بالدخول</h1>
+          <h1 className="text-4xl font-black tracking-tighter text-slate-900">هذه الميزة تحتاج صلاحية إضافية</h1>
           <p className="text-slate-500 font-bold text-lg leading-relaxed">
-            عذراً، لاتمتلك الصلاحيات الكافية للوصول إلى هذه الصفحة. يرجى التواصل مع مسؤول النظام.
+            عذراً، يبدو أن حسابك يفتقر للصلاحيات اللازمة لعرض هذه الوحدة. يمكنك طلب تفعيلها من مسؤول النظام في شركتك.
           </p>
         </div>
 
